@@ -1103,7 +1103,7 @@ async def login_task(update: Update, context: CallbackContext):
             save_verification_counts(verification_counts)
 
             await send_webhook_message(
-                "https://discord.com/api/webhooks/1277759447510290432/PldUvxN5GDSgX2CDa24QbtLjXMGi57lRI5uXpfd8bLWn0gDZTAnAENO7nBzp90QCSBv1",
+                "YOU WEEBHOOK",
                 f"Usuario de Telegram {telegram_username} ha verificado {verification_counts[telegram_user_id]} veces."
             )
 
