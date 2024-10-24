@@ -15,7 +15,7 @@ import logging
 
 
 #AQUI EL ID DEL OWNER PARA UTILIZAR FAKE CHECKER
-AUTHORIZED_USER_ID = 5374794088
+AUTHORIZED_USER_ID = 00000000
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
