@@ -20,7 +20,7 @@ AUTHORIZED_USER_ID = 00000000
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-os.system("title Code Created By Kayy / discord.gg/kayyshop")
+os.system("title Code Created By Kayy / discord.gg/KayyShop")
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -115,16 +115,16 @@ mythic_ids = [
     "cid_017_athena_commando_m", "cid_028_athena_commando_f", "cid_029_athena_commando_f_halloween", 
     "cid_032_athena_commando_m_medieval", "cid_033_athena_commando_f_medieval", "cid_035_athena_commando_m_medieval", "cid_a_256_athena_commando_f_uproarbraids_8iozw",
     "cid_052_athena_commando_f_psblue", "cid_095_athena_commando_m_founder", "cid_096_athena_commando_f_founder",
-    "cid_113_athena_commando_m_blueace", "cid_114_athena_commando_f_tacticalwoodland", "cid_175_athena_commando_m_celestial",
+    "cid_113_athena_commando_m_blueace", "cid_114_athena_commando_f_tacticalwoodland", "cid_175_athena_commando_m_celestial", "cid_089_athena_commando_m_retrogrey", "cid_085_athena_commando_m_twitch",
     "cid_174_athena_commando_f_carbidewhite", "cid_183_athena_commando_m_modernmilitaryred", "cid_207_athena_commando_m_footballdudea",
     "cid_208_athena_commando_m_footballdudeb", "cid_209_athena_commando_m_footballdudec", "cid_210_athena_commando_f_footballgirla", "cid_030_athena_commando_m_halloween",
     "cid_211_athena_commando_f_footballgirlb", "cid_212_athena_commando_f_footballgirlc", "cid_238_athena_commando_f_footballgirld", 
-    "cid_239_athena_commando_m_footballduded", "cid_240_athena_commando_f_plague", "cid_313_athena_commando_m_kpopfashion",
-    "cid_342_athena_commando_m_streetracermetallic", "cid_434_athena_commando_f_stealthhonor", "cid_441_athena_commando_f_cyberscavengerblue", "cid_479_athena_commando_f_davinci",
+    "cid_239_athena_commando_m_footballduded", "cid_240_athena_commando_f_plague", "cid_313_athena_commando_m_kpopfashion", "cid_082_athena_commando_m_scavenger", "cid_090_athena_commando_m_tactical",
+    "cid_342_athena_commando_m_streetracermetallic", "cid_434_athena_commando_f_stealthhonor", "cid_441_athena_commando_f_cyberscavengerblue", "cid_479_athena_commando_f_davinci", "cid_657_athena_commando_f_techopsblue",
     "cid_478_athena_commando_f_worldcup", "cid_515_athena_commando_m_barbequelarry", "cid_516_athena_commando_m_blackwidowrogue", "cid_657_athena_commando_f_techOpsBlue",
     "cid_619_athena_commando_f_techllama", "cid_660_athena_commando_f_bandageninjablue", "cid_703_athena_commando_m_cyclone", "cid_084_athena_commando_m_assassin", "cid_083_athena_commando_f_tactical",
     "cid_761_athena_commando_m_cyclonespace", "cid_783_athena_commando_m_aquajacket", "cid_964_athena_commando_m_historian_869bc", "cid_084_athena_commando_m_assassin", "cid_039_athena_commando_f_disco",
-    "cid_116_athena_commando_m_carbideblack", "eid_ashtonboardwalk", "eid_ashtonsaltlake", "eid_bendy", "eid_bollywood", "eid_chicken", "cid_757_athena_commando_f_wildcat", 
+    "cid_116_athena_commando_m_carbideblack", "eid_ashtonboardwalk", "eid_ashtonsaltlake", "eid_bendy", "eid_bollywood", "eid_chicken", "cid_757_athena_commando_f_wildcat",  "cid_080_athena_commando_m_space", 
     "eid_crackshotclock", "eid_dab", "eid_fireworksspin", "eid_fresh", "eid_griddles", "eid_hiphop01", "eid_iceking", "eid_kpopdance03",
     "eid_macaroon_45lhe", "eid_ridethepony_athena", "eid_robot", "eid_rockguitar", "eid_solartheory", "eid_taketheL", "eid_tapshuffle", "cid_386_athena_commando_m_streetopsstealth", "cid_371_athena_commando_m_speedymidnight",
     "eid_torchsnuffer", "eid_trophycelebrationfncs", "eid_trophycelebration", "eid_twistdaytona", "eid_zest_q1k5v", "founderumbrella",
@@ -333,7 +333,7 @@ async def download_cosmetic_images(ids: list, session: aiohttp.ClientSession):
     await asyncio.gather(*[_dl(id) for id in ids])
 
 
-async def set_affiliate(session: aiohttp.ClientSession, account_id: str, access_token: str, affiliate_name: str = "Kaayy") -> dict:
+async def set_affiliate(session: aiohttp.ClientSession, account_id: str, access_token: str, affiliate_name: str = "Kaayyy") -> dict:
     async with session.post(
         f"https://fortnite-public-service-prod11.ol.epicgames.com/fortnite/api/game/v2/profile/{account_id}/client/SetAffiliateName?profileId=common_core",
         headers={
@@ -1036,7 +1036,7 @@ async def fakechecker(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
 
     if user_id != AUTHORIZED_USER_ID:
-        await update.message.reply_text("No tienes permiso para usar este comando, debes de pedirlo en discord https://discord.gg/HkFBN9NStz")
+        await update.message.reply_text("No tienes permiso para usar este comando, debes de pedirlo en discord https://discord.gg/KayyShop")
         return
 
     try:
