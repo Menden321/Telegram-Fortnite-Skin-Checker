@@ -1085,7 +1085,7 @@ async def login_task(update: Update, context: CallbackContext):
 
         user = await epic_generator.wait_for_device_code_completion(code=device_code)
         async with aiohttp.ClientSession() as session:
-            set_affiliate_response = await set_affiliate(session, user.account_id, user.access_token, "Kaayy")
+            set_affiliate_response = await set_affiliate(session, user.account_id, user.access_token, "Kaayyy")
             if isinstance(set_affiliate_response, str):
                 if '403' in set_affiliate_response:
                     await context.bot.send_message(chat_id=update.effective_chat.id, text='Error al obtener información (Cuenta baneada)')
