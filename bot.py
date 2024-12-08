@@ -283,29 +283,17 @@ class EpicGenerator:
 async def get_cosmetic_info(cosmetic_id: str, session: aiohttp.ClientSession) -> dict:
     async with session.get(f"https://fortnite-api.com/v2/cosmetics/br/{cosmetic_id}") as resp:
         if resp.status != 200:
-            return {"id": cosmetic_id, "rarity": "Common", "name": "Unknown", "variants": []}
+            return {"id": cosmetic_id, "rarity": "Common", "name": "UNKNOWN", "styles": []}
         data = await resp.json()
         rarity = data.get("data", {}).get("rarity", {}).get("displayValue", "Common")
-        name = data.get("data", {}).get("name", "Unknown")
-        variants = data.get("data", {}).get("variants", [])
+        name = data.get("data", {}).get("name", "UNKNOWN").upper()
         if cosmetic_id.lower() in mythic_ids:
             rarity = "Mythic"
+        if name == "UNKNOWN":
+            name = cosmetic_id.upper()
+        
+        return {"id": cosmetic_id, "rarity": rarity, "name": name}
 
-        if name == "Unknown":
-            name = cosmetic_id
-
-        return {"id": cosmetic_id, "rarity": rarity, "name": name, "variants": variants}
-
-async def _dl_variant(variant_url: str, variant_path: str):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(variant_url) as resp:
-            if resp.status == 200:
-                content = await resp.read()
-                with open(variant_path, "wb") as f:
-                    f.write(content)
-                logger.info(f"Downloaded variant image from {variant_url}")
-            else:
-                logger.warning(f"Failed to download variant from {variant_url} with status {resp.status}")
 
 async def download_cosmetic_images(ids: list, session: aiohttp.ClientSession):
     async def _dl(id: str):
@@ -361,62 +349,6 @@ async def grabprofile(session: aiohttp.ClientSession, info: dict, profileid: str
         else:
             profile_data = await resp.json()
             return profile_data
-        
-async def createimg99(ids: list, session: aiohttp.ClientSession, title: str = None, username: str = "User", sort_by_rarity: bool = False, show_fake_text: bool = False) -> io.BytesIO:
-    async def _dl(id: str, variant_path: str = None):
-        imgpath = f"./cache/{id.replace('/', '_')}.png" if variant_path else f"./cache/{id}.png"
-        if not os.path.exists(imgpath) or not os.path.isfile(imgpath):
-            base_url = f"https://fortnite-api.com/v2/cosmetics/br/{id}"
-            if variant_path:
-                url = f"{base_url}/{variant_path}"
-            else:
-                url = base_url
-
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    img_url = data.get("data", {}).get("images", {}).get("icon", data.get("data", {}).get("images", {}).get("smallIcon"))
-
-                    async with session.get(img_url) as img_resp:
-                        if img_resp.status == 200:
-                            with open(imgpath, "wb") as f:
-                                f.write(await img_resp.read())
-                        else:
-                            with open(imgpath, "wb") as f:
-                                f.write(open("./tbd.png", "rb").read())
-                else:
-                    with open(imgpath, "wb") as f:
-                        f.write(open("./tbd.png", "rb").read())
-
-    await asyncio.gather(*[_dl(*id.split('/variants/')) for id in ids])
-
-    images = []
-    info_list = []
-    cosmetic_info_tasks = [get_cosmetic_info(id.split('/variants/')[0], session) for id in ids]
-
-    for id, info in zip(ids, await asyncio.gather(*cosmetic_info_tasks)):
-        variant_path = id.split('/variants/')[1] if '/variants/' in id else None
-        imgpath = f"./cache/{id.replace('/', '_')}.png" if variant_path else f"./cache/{id.split('/variants/')[0]}.png"
-        try:
-            img = Image.open(imgpath)
-            info_list.append(info)
-            background_path = rarity_backgrounds.get(info["rarity"], rarity_backgrounds["Common"])
-            background = Image.open(background_path)
-            img = combine_with_background99(img, background, info["name"], info["styles"])
-            images.append(img)
-        except (IOError, OSError) as e:
-            print(f"Error opening image {imgpath}: {e}")
-    if images:
-        if sort_by_rarity:
-            sorted_images = [img for _, img in sorted(zip(info_list, images), key=lambda x: rarity_priority.get(x[0]["rarity"], 6))]
-        else:
-            sorted_images = images
-        combined_image = combine_images(sorted_images, username, len(ids), show_fake_text=show_fake_text)
-        combined_image.save(f := io.BytesIO(), "PNG")
-        f.seek(0) 
-        return f
-    else:
-        return io.BytesIO()  
 
 async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None, username: str = "User", sort_by_rarity: bool = False, show_fake_text: bool = False, item_order: list = None, unlocked_styles: dict = None) -> io.BytesIO:
     logger.info(f"Creating image for {username} with {len(ids)} items")
@@ -432,30 +364,15 @@ async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None
 
     for id, info in zip(ids, await asyncio.gather(*cosmetic_info_tasks)):
         imgpath = f"./cache/{id}.png"
-        try:
-            img = Image.open(imgpath)
-            if img.size == (1, 1):
+        img = Image.open(imgpath)
+        if img.size == (1, 1):
                 raise IOError("Image is empty")
-            info_list.append(info)
-            background_path = rarity_backgrounds.get(info["rarity"], rarity_backgrounds["Common"])
-            background = Image.open(background_path)
-            img = combine_with_background(img, background, info["name"], info["rarity"])
-            images.append(img)
-            logger.info(f"Processed image for {info['name']} with rarity {info['rarity']}")
-            if unlocked_styles and id in unlocked_styles:
-                for variant in info["variants"]:
-                    for option in variant["options"]:
-                        if option["tag"] in unlocked_styles[id]:
-                            variant_id = f"{id}_{option['tag']}"
-                            variant_path = f"./cache/{variant_id}.png"
-                            await _dl_variant(option["image"], variant_path)
-                            variant_img = Image.open(variant_path)
-                            variant_background = Image.open(background_path)
-                            variant_img = combine_with_background(variant_img, variant_background, f"{info['name']} ({option['name']})", info["rarity"])
-                            images.append(variant_img)
-                            logger.info(f"Processed variant image for {info['name']} ({option['name']})")
-        except (IOError, OSError, UnidentifiedImageError) as e:
-            logger.error(f"Error opening image {imgpath}: {e}")
+        info_list.append(info)
+        background_path = rarity_backgrounds.get(info["rarity"], rarity_backgrounds["Common"])
+        background = Image.open(background_path)
+        img = combine_with_background(img, background, info["name"], info["rarity"])
+        images.append(img)
+        logger.info(f"Processed image for {info['name']} with rarity {info['rarity']}")
 
     if images:
         if sort_by_rarity:
@@ -472,15 +389,7 @@ async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None
         return f
     else:
         logger.warning("No images to combine, returning None")
-        return None
-
-async def get_cosmetic_styles(cosmetic_id: str, session: aiohttp.ClientSession) -> list:
-    async with session.get(f"https://fortnite-api.com/v2/cosmetics/br/{cosmetic_id}") as resp:
-        if resp.status != 200:
-            return []
-        data = await resp.json()
-        styles = data.get("data", {}).get("variants", [])
-        return styles    
+        return None 
 
 async def get_cosmetic_info(cosmetic_id: str, session: aiohttp.ClientSession) -> dict:
     async with session.get(f"https://fortnite-api.com/v2/cosmetics/br/{cosmetic_id}") as resp:
@@ -489,13 +398,12 @@ async def get_cosmetic_info(cosmetic_id: str, session: aiohttp.ClientSession) ->
         data = await resp.json()
         rarity = data.get("data", {}).get("rarity", {}).get("displayValue", "Common")
         name = data.get("data", {}).get("name", "Unknown")
-        styles = data.get("data", {}).get("variants", [])
         if cosmetic_id.lower() in mythic_ids:
             rarity = "Mythic"
         if name == "Unknown":
             name = cosmetic_id
         
-        return {"id": cosmetic_id, "rarity": rarity, "name": name, "styles": styles}
+        return {"id": cosmetic_id, "rarity": rarity, "name": name,}
  
 directorio_actual = os.path.dirname(os.path.abspath(__file__))
 FONT_PATH = os.path.join(directorio_actual, "fonts", "Burbank Big Regular Bold.otf") 
@@ -511,18 +419,19 @@ def combine_with_background(foreground: Image.Image, background: Image.Image, na
     draw = ImageDraw.Draw(bg)
 
     special_rarities = {
-        "Icon Series", "DARK SERIES", "Star Wars Series","Gaming Legends Series", "MARVEL SERIES", "DC SERIES", 
-        "Shadow Series", "Slurp Series", "Lava Series", "Frozen Series"
+        "ICON SERIES", "DARK SERIES", "STAR WARS SERIES","GAMING LEGENDS SERIES", "MARVEL SERIES", "DC SERIES", 
+        "SHADOW SERIES", "SLURP SERIES", "LAVA SERIES", "FROZEN SERIES"
     }
 
-    max_font_size = 50
-    if rarity in special_rarities:
+    max_font_size = 40
+    if rarity.upper() in special_rarities:
         max_font_size *= 2
 
     min_font_size = 10
     max_text_width = bg.width - 20
     font_size = max_font_size
 
+    name = name.upper()
     while font_size > min_font_size:
         font = ImageFont.truetype(FONT_PATH, size=font_size)
         text_bbox = draw.textbbox((0, 0), name, font=font)
@@ -551,54 +460,7 @@ def combine_with_background(foreground: Image.Image, background: Image.Image, na
     logger.info(f"Combined image {name} with background successfully")
     return bg
 
-def combine_with_background99(foreground: Image.Image, background: Image.Image, name: str, styles: list) -> Image.Image:
-    logger.info(f"Combining image {name} with background")
-    bg = background.convert("RGBA")
-    fg = foreground.convert("RGBA")
-    fg = fg.resize(bg.size, Image.Resampling.LANCZOS)
 
-    bg.paste(fg, (0, 0), fg)
-
-    draw = ImageDraw.Draw(bg)
-
-    special_rarities = {
-        "Icon Series", "DARK SERIES", "Star Wars Series","Gaming Legends Series", "MARVEL SERIES", "DC SERIES", 
-        "Shadow Series", "Slurp Series", "Lava Series", "Frozen Series"
-    }
-
-    max_font_size = 50
-
-    min_font_size = 10
-    max_text_width = bg.width - 20
-    font_size = max_font_size
-
-    while font_size > min_font_size:
-        font = ImageFont.truetype(FONT_PATH, size=font_size)
-        text_bbox = draw.textbbox((0, 0), name, font=font)
-        text_width, text_height = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
-
-        if text_width <= max_text_width:
-            break
-
-        font_size -= 1
-
-    font = ImageFont.truetype(FONT_PATH, size=font_size)
-    text_bbox = draw.textbbox((0, 0), name, font=font)
-    text_width, text_height = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
-    text_x = (bg.width - text_width) // 2
-
-    muro_y_position = int(bg.height * 0.80)
-    muro_height = bg.height - muro_y_position
-
-    muro = Image.new('RGBA', (bg.width, muro_height), (0, 0, 0, int(255 * 0.7)))
-    bg.paste(muro, (0, muro_y_position), muro)
-
-    text_y = muro_y_position + (muro_height - text_height) // 2
-
-    draw.text((text_x, text_y), name, fill="white", font=font)
-    
-    logger.info(f"Combined image {name} with background successfully")
-    return bg
 
 def combine_images(images, username: str, item_count: int, logo_filename="logo.png", show_fake_text: bool = False):
     max_width = 1848
@@ -649,7 +511,6 @@ def combine_images(images, username: str, item_count: int, logo_filename="logo.p
     text1 = f"{('Objetos Totales')}: {item_count}"
     text2 = f"{('Checkeado Por')} {username} | {datetime.now().strftime('%d/%m/%y')}"
     text3 = ("t.me/KayySkinCheckerBot")
-    fake_text = "FAKE SKIN CHECKER"
     max_text_width = total_width - (logo_position[0] + logo_width + 10)
     font_size = logo_height // 3
 
@@ -682,28 +543,6 @@ def combine_images(images, username: str, item_count: int, logo_filename="logo.p
     draw.text((text_x1, text_y1), text1, fill="white", font=font)
     draw.text((text_x2, text_y2), text2, fill="white", font=font)
     draw.text((text_x3, text_y3), text3, fill="white", font=font)
-
-    if show_fake_text:
-        fake_font_size = font_size * 2  
-        fake_font = ImageFont.truetype("arial.ttf", size=fake_font_size)
-        fake_text_bbox = fake_font.getbbox(fake_text)
-        text_width_fake, text_height_fake = fake_text_bbox[2] - fake_text_bbox[0], fake_text_bbox[3] - fake_text_bbox[1]
-        
-        text_x_fake = total_width - text_width_fake - 10 
-        text_y_fake = text_y2  
-
-        outline_range = 3  
-        for adj in range(-outline_range, outline_range + 1):
-            if adj == 0:
-                continue
-            draw.text((text_x_fake + adj, text_y_fake), fake_text, font=fake_font, fill="white")
-            draw.text((text_x_fake, text_y_fake + adj), fake_text, font=fake_font, fill="white")
-            draw.text((text_x_fake + adj, text_y_fake + adj), fake_text, font=fake_font, fill="white")
-            draw.text((text_x_fake - adj, text_y_fake - adj), fake_text, font=fake_font, fill="white")
-            draw.text((text_x_fake + adj, text_y_fake - adj), fake_text, font=fake_font, fill="white")
-            draw.text((text_x_fake - adj, text_y_fake + adj), fake_text, font=fake_font, fill="white")
-
-        draw.text((text_x_fake, text_y_fake), fake_text, fill="red", font=fake_font)
 
     return combined_image
 
@@ -830,9 +669,11 @@ async def get_account_stats(session: aiohttp.ClientSession, user: EpicUser) -> d
         if resp.status != 200:
             return {"error": f"Error fetching account stats ({resp.status})"}
         data = await resp.json()
-        account_level = data.get("profileChanges", [{}])[0].get("profile", {}).get("stats", {}).get("attributes", {}).get("accountLevel", 0)
 
-        past_seasons = data.get("profileChanges", [{}])[0].get("profile", {}).get("stats", {}).get("attributes", {}).get("past_seasons", [])
+        attributes = data.get("profileChanges", [{}])[0].get("profile", {}).get("stats", {}).get("attributes", {})
+        account_level = attributes.get("accountLevel", 0)
+
+        past_seasons = attributes.get("past_seasons", [])
         total_wins = sum(season.get("numWins", 0) for season in past_seasons)
         total_matches = sum(
             season.get("numHighBracket", 0) + season.get("numLowBracket", 0) + 
@@ -840,32 +681,28 @@ async def get_account_stats(session: aiohttp.ClientSession, user: EpicUser) -> d
             season.get("numHighBracket_Ar", 0) + season.get("numLowBracket_Ar", 0) 
             for season in past_seasons
         )
-
-        last_played_dates = []
-        modes = ["solo", "duo", "squad", "trio", "creative", "creative2", "tournament", "ranked", "zerobuild", "ltm"]
-        for mode in modes:
-            mode_last_played = data.get("profileChanges", [{}])[0].get("profile", {}).get("stats", {}).get("attributes", {}).get(f"lastModified_{mode}", "")
-            if mode_last_played:
-                last_played_dates.append(datetime.strptime(mode_last_played, "%Y-%m-%dT%H:%M:%S.%fZ"))
-
-        if last_played_dates:
-            last_played_date = max(last_played_dates)
-            last_played_str = last_played_date.strftime("%d.%m.%y")
-            days_since_last_played = (datetime.utcnow() - last_played_date).days
-            last_played_info = f"{last_played_str} ({days_since_last_played} days ago)"
-        else:
-            last_played_info = "Unknown"
-
+        try:
+            last_login_raw = attributes.get("last_match_end_datetime", 'N/A')
+            if last_login_raw != 'N/A':
+                last_played_date = datetime.strptime(last_login_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
+                last_played_str = last_played_date.strftime("%d/%m/%y")
+                days_since_last_played = (datetime.utcnow() - last_played_date).days
+                last_played_info = f"{last_played_str} ({days_since_last_played} días)"
+            else:
+                last_played_info = "LOL +1200 Dias"
+        except Exception as e:
+            logger.error(f"Error parsing last_match_end_datetime: {e}")
+            last_played_info = "LOL +1200 Dias"
         seasons_info = []
         for season in past_seasons:
             season_info = (
-                f"Temporada {season['seasonNumber']}\n"
+                f"Temporada {season.get('seasonNumber', 'Desconocido')}\n"
                 f"› Nivel: {season.get('seasonLevel', 'Desconocido')}\n"
                 f"› Pase de Batalla comprado: {bool_to_emoji(season.get('purchasedVIP', False))}\n"
                 f"› Victorias en la temporada: {season.get('numWins', 0)}\n"
             )   
             seasons_info.append(season_info)
-        
+
         return {
             "account_level": account_level,
             "total_wins": total_wins,
@@ -1032,27 +869,6 @@ async def eliminar_amigos_task(update: Update, context: CallbackContext):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Error al procesar la solicitud: {e}")                
 
 
-async def fakechecker(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-
-    if user_id != AUTHORIZED_USER_ID:
-        await update.message.reply_text("No tienes permiso para usar este comando, debes de pedirlo en discord https://discord.gg/KayyShop")
-        return
-
-    try:
-        items = ' '.join(context.args).strip()
-        item_ids = [item.strip() for item in items.split(' ') if item.strip()]
-
-        async with aiohttp.ClientSession() as session:
-            image_data = await createimg99(item_ids, session, username=update.message.from_user.username, sort_by_rarity=True, show_fake_text=False)
-            image_file = io.BytesIO(image_data.getvalue())
-            image_file.name = 'Checker_Items.png'
-            
-            await update.message.reply_photo(photo=image_file, caption="Objetos Especificados")
-            
-    except Exception as e:
-        await update.message.reply_text(f"Error al procesar la solicitud: {e}")
-
 async def help_command(update: Update, context: CallbackContext):
     asyncio.create_task(help_task(update, context))
 
@@ -1103,7 +919,7 @@ async def login_task(update: Update, context: CallbackContext):
             save_verification_counts(verification_counts)
 
             await send_webhook_message(
-                "YOU WEEBHOOK",
+                "TU WEEBOOK DE DISCORD CABRON MIRATE UN TUTORIAL SI NO SABES",
                 f"Usuario de Telegram {telegram_username} ha verificado {verification_counts[telegram_user_id]} veces."
             )
 
@@ -1116,11 +932,6 @@ async def login_task(update: Update, context: CallbackContext):
             if isinstance(profile, str):
                 await update.message.reply_text(profile)
                 return
-
-            unlocked_styles = {} 
-            for item_id, item_data in profile["profileChanges"][0]["profile"]["items"].items():
-                if "variants" in item_data:
-                    unlocked_styles[item_id] = [variant["options"][0]["tag"] for variant in item_data["variants"]]
 
             vbucks_info = await get_vbucks_info(session, user)
             if "error" in vbucks_info:
@@ -1175,6 +986,7 @@ async def login_task(update: Update, context: CallbackContext):
                 f"🆔 Nivel de cuenta: {account_stats['account_level']}\n"
                 f"🏆 Victorias totales: {account_stats['total_wins']}\n"
                 f"🎟 Partidas totales: {account_stats['total_matches']}\n"
+                f"🕒 Última partida jugada: {account_stats['last_played_info']}\n"
             )
             await update.message.reply_text(additional_info_message)
             logger.info("Sent additional information")
@@ -1199,7 +1011,7 @@ async def login_task(update: Update, context: CallbackContext):
             for group in order:
                 if group in items:
                     sorted_ids = await sort_ids_by_rarity(items[group], session)
-                    image_data = await createimg(sorted_ids, session, username=username, sort_by_rarity=False, unlocked_styles=unlocked_styles)
+                    image_data = await createimg(sorted_ids, session, username=username, sort_by_rarity=False)
                     await context.bot.send_photo(chat_id=update.message.chat_id, photo=image_data, caption=f"{group}")
                     logger.info(f"Sent image for group {group}")
 
@@ -1211,11 +1023,11 @@ async def login_task(update: Update, context: CallbackContext):
                     
             mythic_items = filter_mythic_ids(items)
             if mythic_items:
-                mythic_image_data = await createimg(mythic_items, session, "Mythic_Items", username, sort_by_rarity=False, item_order=order, unlocked_styles=unlocked_styles)
+                mythic_image_data = await createimg(mythic_items, session, "Mythic_Items", username, sort_by_rarity=False, item_order=order)
                 await context.bot.send_photo(chat_id=update.message.chat_id, photo=mythic_image_data, caption="Cosas Míticas")
                 logger.info("Sent mythic items image")
                     
-            combined_image_data = await createimg(combined_images, session, "Combined_Items", username, sort_by_rarity=False, unlocked_styles=unlocked_styles)
+            combined_image_data = await createimg(combined_images, session, "Combined_Items", username, sort_by_rarity=False)
             await context.bot.send_photo(chat_id=update.message.chat_id, photo=combined_image_data, caption="Todos los cósmeticos")
             await update.message.reply_text(f"Muchas gracias por checkear tu cuenta, espero verte pronto :)")
             logger.info("Sent combined items image")
@@ -1264,14 +1076,12 @@ if __name__ == "__main__":
     userinfo_handler = CommandHandler('userinfo', userinfo)
     text_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, help_command)
     eliminar_amigos_handler = CommandHandler('eliminar_amigos', eliminar_amigos)
-    fakechecker_handler = CommandHandler('fakechecker', fakechecker)
 
     application.add_handler(help_handler)
     application.add_handler(login_handler)
     application.add_handler(launch_handler)
     application.add_handler(userinfo_handler)
     application.add_handler(eliminar_amigos_handler)
-    application.add_handler(fakechecker_handler)
     application.add_handler(text_handler)
 
     print("Bot de Telegram iniciado")
