@@ -350,7 +350,7 @@ async def grabprofile(session: aiohttp.ClientSession, info: dict, profileid: str
             profile_data = await resp.json()
             return profile_data
 
-async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None, username: str = "User", sort_by_rarity: bool = False, show_fake_text: bool = False, item_order: list = None, unlocked_styles: dict = None) -> io.BytesIO:
+async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None, username: str = "User", sort_by_rarity: bool = False, show_fake_: bool = False, item_order: list = None, unlocked_styles: dict = None) -> io.BytesIO:
     logger.info(f"Creating image for {username} with {len(ids)} items")
 
     if not os.path.exists('./cache'):
@@ -381,7 +381,7 @@ async def createimg(ids: list, session: aiohttp.ClientSession, title: str = None
             sorted_images = [img for _, img in sorted(zip(info_list, images), key=lambda x: item_order.index(get_cosmetic_type(x[0]["id"])) if get_cosmetic_type(x[0]["id"]) in item_order else 999)]
         else:
             sorted_images = images
-        combined_image = combine_images(sorted_images, username, len(ids), show_fake_text=show_fake_text)
+        combined_image = combine_images(sorted_images, username, len(ids), show_fake_=show_fake_)
         f = io.BytesIO()
         combined_image.save(f, "PNG")
         f.seek(0)
@@ -508,9 +508,9 @@ def combine_images(images, username: str, item_count: int, logo_filename="logo.p
     logo = logo.resize((logo_width, logo_height))
     combined_image.paste(logo, logo_position, logo)
 
-    text1 = f"{('Objetos Totales')}: {item_count}"
-    text2 = f"{('Checkeado Por')} {username} | {datetime.now().strftime('%d/%m/%y')}"
-    text3 = ("t.me/KayySkinCheckerBot")
+    text1 = f"{('Total Items')}: {item_count}"
+    text2 = f"{('Checked by')} @{username} | {datetime.now().strftime('%d/%m/%y')}"
+    text3 = ("t.me/DiddyCheckerBot")
     max_text_width = total_width - (logo_position[0] + logo_width + 10)
     font_size = logo_height // 3
 
