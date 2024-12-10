@@ -1066,7 +1066,7 @@ async def set_bot_commands(application):
     await application.bot.set_my_commands(commands)
 
 if __name__ == "__main__":
-    TOKEN = "EL TOKEN DE TU BOT DE TELEGRAM"
+    TOKEN = "7635991207:AAHA9lg_O8uCOoHHQHzKFvWKfEaeiammjTM"
     
     application = ApplicationBuilder().token(TOKEN).build()
 
